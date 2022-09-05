@@ -55,6 +55,11 @@ extern volatile int CppCoreGuidelinesModuleAnchorSource;
 static int LLVM_ATTRIBUTE_UNUSED CppCoreGuidelinesModuleAnchorDestination =
     CppCoreGuidelinesModuleAnchorSource;
 
+// This anchor is used to force the linker to link the CudaModule.
+extern volatile int CudaModuleAnchorSource;
+static int LLVM_ATTRIBUTE_UNUSED CudaModuleAnchorDestination =
+    CudaModuleAnchorSource;
+
 // This anchor is used to force the linker to link the DarwinModule.
 extern volatile int DarwinModuleAnchorSource;
 static int LLVM_ATTRIBUTE_UNUSED DarwinModuleAnchorDestination =

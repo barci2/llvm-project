@@ -67,6 +67,7 @@ Name prefix            Description
 ``concurrency-``       Checks related to concurrent programming (including
                        threads, fibers, coroutines, etc.).
 ``cppcoreguidelines-`` Checks related to C++ Core Guidelines.
+``cuda-``              Checks related to CUDA best practices.
 ``darwin-``            Checks related to Darwin coding conventions.
 ``fuchsia-``           Checks related to Fuchsia coding conventions.
 ``google-``            Checks related to Google coding conventions.

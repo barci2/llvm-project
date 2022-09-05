@@ -96,6 +96,8 @@ The improvements are...
 Improvements to clang-tidy
 --------------------------
 
+- Introduce the cuda module for checks specific to CUDA code.
+
 New checks
 ^^^^^^^^^^
 

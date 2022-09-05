@@ -93,7 +93,7 @@ class CheckRunner:
 
     file_name_with_extension = self.assume_file_name or self.input_file_name
     _, extension = os.path.splitext(file_name_with_extension)
-    if extension not in ['.c', '.hpp', '.m', '.mm']:
+    if extension not in ['.c', '.cu', '.hpp', '.m', '.mm']:
       extension = '.cpp'
     self.temp_file_name = self.temp_file_name + extension
 
@@ -115,8 +115,13 @@ class CheckRunner:
       self.clang_extra_args = ['-fobjc-abi-version=2', '-fobjc-arc', '-fblocks'] + \
           self.clang_extra_args
 
-    if extension in ['.cpp', '.hpp', '.mm']:
+    if extension in ['.cpp', '.cu', '.hpp', '.mm']:
       self.clang_extra_args.append('-std=' + self.std)
+
+    # Tests should not rely on a certain cuda headers and library version
+    # being available on the machine
+    if extension == '.cu':
+      self.clang_extra_args.extend(["--no-cuda-version-check", "-nocudalib", "-nocudainc"])
 
     # Tests should not rely on STL being available, and instead provide mock
     # implementations of relevant APIs.

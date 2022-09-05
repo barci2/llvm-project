@@ -16,6 +16,7 @@ Clang-Tidy Checks
    clang-analyzer/*
    concurrency/*
    cppcoreguidelines/*
+   cuda/*
    darwin/*
    fuchsia/*
    google/*
