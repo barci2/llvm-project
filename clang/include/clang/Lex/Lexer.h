@@ -554,7 +554,8 @@ public:
   /// Returns the next token, or none if the location is inside a macro.
   static Optional<Token> findNextToken(SourceLocation Loc,
                                        const SourceManager &SM,
-                                       const LangOptions &LangOpts);
+                                       const LangOptions &LangOpts,
+                                       bool IncludeComments = false);
 
   /// Checks that the given token is the first token that occurs after
   /// the given location (this excludes comments and whitespace). Returns the

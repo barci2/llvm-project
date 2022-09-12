@@ -1258,7 +1258,8 @@ const char *Lexer::SkipEscapedNewLines(const char *P) {
 
 Optional<Token> Lexer::findNextToken(SourceLocation Loc,
                                      const SourceManager &SM,
-                                     const LangOptions &LangOpts) {
+                                     const LangOptions &LangOpts,
+                                     bool IncludeComments) {
   if (Loc.isMacroID()) {
     if (!Lexer::isAtEndOfMacroExpansion(Loc, SM, LangOpts, &Loc))
       return None;
@@ -1274,11 +1275,13 @@ Optional<Token> Lexer::findNextToken(SourceLocation Loc,
   if (InvalidTemp)
     return None;
 
-  const char *TokenBegin = File.data() + LocInfo.second;
+  const char *const TokenBegin = File.data() + LocInfo.second;
 
   // Lex from the start of the given location.
   Lexer lexer(SM.getLocForStartOfFile(LocInfo.first), LangOpts, File.begin(),
                                       TokenBegin, File.end());
+  lexer.SetCommentRetentionState(IncludeComments);
+
   // Find the token.
   Token Tok;
   lexer.LexFromRawLexer(Tok);

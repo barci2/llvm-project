@@ -622,6 +622,24 @@ TEST_F(LexerTest, FindNextToken) {
                                                 "xyz", "=", "abcd", ";"));
 }
 
+TEST_F(LexerTest, FindNextTokenWithComments) {
+  Lex("int /* type */ abcd = 0; // vardecl\n"
+      "int /*other type*/ xyz = abcd; //other vardecl \n");
+  std::vector<std::string> GeneratedByNextToken;
+  SourceLocation Loc =
+      SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID());
+  while (true) {
+    auto T = Lexer::findNextToken(Loc, SourceMgr, LangOpts, true);
+    ASSERT_TRUE(T);
+    if (T->is(tok::eof))
+      break;
+    GeneratedByNextToken.push_back(getSourceText(*T, *T));
+    Loc = T->getLocation();
+  }
+  EXPECT_THAT(GeneratedByNextToken, ElementsAre("/* type */", "abcd", "=", "0", ";", "// vardecl", "int", "/*other type*/",
+                                                "xyz", "=", "abcd", ";", "//other vardecl "));
+}
+
 TEST_F(LexerTest, CreatedFIDCountForPredefinedBuffer) {
   TrivialModuleLoader ModLoader;
   auto PP = CreatePP("", ModLoader);
