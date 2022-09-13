@@ -49,6 +49,51 @@ AST_MATCHER_FUNCTION(ast_matchers::TypeMatcher, isPointerToConst) {
   return pointerType(pointee(qualType(isConstQualified())));
 }
 
+// Matches the statements in a GNU statement-expression that are not returned
+// from it.
+AST_MATCHER_P(StmtExpr, hasUnreturning,
+              clang::ast_matchers::internal::Matcher<Stmt>, matcher) {
+  const auto compoundStmt = Node.getSubStmt();
+  assert(compoundStmt);
+
+  clang::ast_matchers::internal::BoundNodesTreeBuilder result;
+  bool matched = false;
+  for (auto stmt = compoundStmt->body_begin();
+       stmt + 1 < compoundStmt->body_end(); ++stmt) {
+    clang::ast_matchers::internal::BoundNodesTreeBuilder builderInner(*Builder);
+    assert(stmt && *stmt);
+    if (matcher.matches(**stmt, Finder, &builderInner)) {
+      result.addMatch(builderInner);
+      matched = true;
+    }
+  }
+  *Builder = result;
+  return matched;
+}
+
+// Matches all of the nodes (simmilar to forEach) that match the matcher
+// and have return values not used in any statement.
+AST_MATCHER_FUNCTION_P(ast_matchers::StatementMatcher, isValueUnused,
+                       ast_matchers::StatementMatcher, Matcher) {
+  using namespace ast_matchers;
+  const auto UnusedInCompoundStmt =
+      compoundStmt(forEach(Matcher), unless(hasParent(stmtExpr())));
+  const auto UnusedInGnuExprStmt = stmtExpr(hasUnreturning(Matcher));
+  const auto UnusedInIfStmt =
+      ifStmt(eachOf(hasThen(Matcher), hasElse(Matcher)));
+  const auto UnusedInWhileStmt = whileStmt(hasBody(Matcher));
+  const auto UnusedInDoStmt = doStmt(hasBody(Matcher));
+  const auto UnusedInForStmt = forStmt(
+      eachOf(hasLoopInit(Matcher), hasIncrement(Matcher), hasBody(Matcher)));
+  const auto UnusedInRangeForStmt = cxxForRangeStmt(hasBody(Matcher));
+  const auto UnusedInCaseStmt = switchCase(forEach(Matcher));
+  const auto Unused =
+      stmt(anyOf(UnusedInCompoundStmt, UnusedInGnuExprStmt, UnusedInIfStmt,
+                 UnusedInWhileStmt, UnusedInDoStmt, UnusedInForStmt,
+                 UnusedInRangeForStmt, UnusedInCaseStmt));
+  return stmt(eachOf(Unused, forEachDescendant(Unused)));
+}
+
 // A matcher implementation that matches a list of type name regular expressions
 // against a NamedDecl. If a regular expression contains the substring "::"
 // matching will occur against the qualified name, otherwise only the typename.

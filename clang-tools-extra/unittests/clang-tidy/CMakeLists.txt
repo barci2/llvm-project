@@ -25,6 +25,7 @@ add_extra_unittest(ClangTidyTests
   GlobListTest.cpp
   GoogleModuleTest.cpp
   LLVMModuleTest.cpp
+  MatchersTest.cpp
   ModernizeModuleTest.cpp
   NamespaceAliaserTest.cpp
   ObjCModuleTest.cpp
@@ -43,6 +44,7 @@ clang_target_link_libraries(ClangTidyTests
   clangFrontend
   clangLex
   clangSerialization
+  clangTesting
   clangTooling
   clangToolingCore
   clangTransformer

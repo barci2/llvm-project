@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "UnusedReturnValueCheck.h"
+#include "../utils/Matchers.h"
 #include "../utils/OptionsUtils.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
@@ -140,29 +141,8 @@ void UnusedReturnValueCheck::registerMatchers(MatchFinder *Finder) {
                    unless(returns(voidType())),
                    isInstantiatedFrom(hasAnyName(FunVec)))))
           .bind("match"))));
-
-  auto UnusedInCompoundStmt =
-      compoundStmt(forEach(MatchedCallExpr),
-                   // The checker can't currently differentiate between the
-                   // return statement and other statements inside GNU statement
-                   // expressions, so disable the checker inside them to avoid
-                   // false positives.
-                   unless(hasParent(stmtExpr())));
-  auto UnusedInIfStmt =
-      ifStmt(eachOf(hasThen(MatchedCallExpr), hasElse(MatchedCallExpr)));
-  auto UnusedInWhileStmt = whileStmt(hasBody(MatchedCallExpr));
-  auto UnusedInDoStmt = doStmt(hasBody(MatchedCallExpr));
-  auto UnusedInForStmt =
-      forStmt(eachOf(hasLoopInit(MatchedCallExpr),
-                     hasIncrement(MatchedCallExpr), hasBody(MatchedCallExpr)));
-  auto UnusedInRangeForStmt = cxxForRangeStmt(hasBody(MatchedCallExpr));
-  auto UnusedInCaseStmt = switchCase(forEach(MatchedCallExpr));
-
   Finder->addMatcher(
-      stmt(anyOf(UnusedInCompoundStmt, UnusedInIfStmt, UnusedInWhileStmt,
-                 UnusedInDoStmt, UnusedInForStmt, UnusedInRangeForStmt,
-                 UnusedInCaseStmt)),
-      this);
+      functionDecl(hasBody(matchers::isValueUnused(MatchedCallExpr))), this);
 }
 
 void UnusedReturnValueCheck::check(const MatchFinder::MatchResult &Result) {
