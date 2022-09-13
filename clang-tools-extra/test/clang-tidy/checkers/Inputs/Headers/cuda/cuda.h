@@ -14,7 +14,10 @@ struct dim3 {
 };
 
 typedef struct cudaStream *cudaStream_t;
-typedef enum cudaError {} cudaError_t;
+typedef enum cudaError {
+  cudaErrorInvalidValue,
+  cudaErrorMemoryAllocation
+} cudaError_t;
 extern "C" int cudaConfigureCall(dim3 gridSize, dim3 blockSize,
                                  size_t sharedSize = 0,
                                  cudaStream_t stream = 0);

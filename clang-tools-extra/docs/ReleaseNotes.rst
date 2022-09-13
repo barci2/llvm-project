@@ -106,6 +106,11 @@ New checks
 
   Warns when a struct or class uses const or reference (lvalue or rvalue) data members.
 
+- New :doc:`cuda-unsafe-api-call <clang-tidy/checks/cuda/unsafe-api-call>` check.
+
+  Warns whenever the error from CUDA API call is ignored/not handled with a set handler
+  and provides fixes for it.
+
 New check aliases
 ^^^^^^^^^^^^^^^^^
 

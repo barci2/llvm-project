@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "../ClangTidy.h"
-#include "../ClangTidyCheck.h"
 #include "../ClangTidyModule.h"
 #include "../ClangTidyModuleRegistry.h"
+#include "UnsafeApiCallCheck.h"
 
 using namespace clang::ast_matchers;
 
@@ -19,7 +19,9 @@ namespace cuda {
 
 class CudaModule : public ClangTidyModule {
 public:
-  void addCheckFactories(ClangTidyCheckFactories &CheckFactories) override {}
+  void addCheckFactories(ClangTidyCheckFactories &CheckFactories) override {
+    CheckFactories.registerCheck<UnsafeApiCallCheck>("cuda-unsafe-api-call");
+  }
 };
 
 // Register the CudaTidyModule using this statically initialized variable.
