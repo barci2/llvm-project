@@ -111,6 +111,12 @@ New checks
   Warns whenever the error from CUDA API call is ignored/not handled with a set handler
   and provides fixes for it.
 
+- New :doc:`cuda-unsafe-kernel-call
+  <clang-tidy/checks/cuda/unsafe-kernel-call>` check.
+
+  Warns whenever the possible error after launchign a CUDA kernel is not checked 
+  (with a `cudaGetLastError()` function).
+
 New check aliases
 ^^^^^^^^^^^^^^^^^
 

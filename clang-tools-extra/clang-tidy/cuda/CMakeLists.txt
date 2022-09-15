@@ -1,6 +1,7 @@
 add_clang_library(clangTidyCudaModule
   CudaTidyModule.cpp
   UnsafeApiCallCheck.cpp
+  UnsafeKernelCallCheck.cpp
   LINK_LIBS
   clangTidy
   clangTidyUtils

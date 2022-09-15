@@ -199,8 +199,9 @@ Clang-Tidy Checks
    `cppcoreguidelines-pro-type-vararg <cppcoreguidelines/pro-type-vararg.html>`_,
    `cppcoreguidelines-slicing <cppcoreguidelines/slicing.html>`_,
    `cppcoreguidelines-special-member-functions <cppcoreguidelines/special-member-functions.html>`_,
-   `cuda-unsafe-api-call <cuda/unsafe-api-call.html>`_, "Yes"
    `cppcoreguidelines-virtual-class-destructor <cppcoreguidelines/virtual-class-destructor.html>`_, "Yes"
+   `cuda-unsafe-api-call <cuda/unsafe-api-call.html>`_, "Yes"
+   `cuda-unsafe-kernel-call <cuda/unsafe-kernel-call.html>`_, "Yes"
    `darwin-avoid-spinlock <darwin/avoid-spinlock.html>`_,
    `darwin-dispatch-once-nonstatic <darwin/dispatch-once-nonstatic.html>`_, "Yes"
    `fuchsia-default-arguments-calls <fuchsia/default-arguments-calls.html>`_,

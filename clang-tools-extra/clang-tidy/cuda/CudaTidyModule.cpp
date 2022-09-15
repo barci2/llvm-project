@@ -10,6 +10,7 @@
 #include "../ClangTidyModule.h"
 #include "../ClangTidyModuleRegistry.h"
 #include "UnsafeApiCallCheck.h"
+#include "UnsafeKernelCallCheck.h"
 
 using namespace clang::ast_matchers;
 
@@ -21,6 +22,8 @@ class CudaModule : public ClangTidyModule {
 public:
   void addCheckFactories(ClangTidyCheckFactories &CheckFactories) override {
     CheckFactories.registerCheck<UnsafeApiCallCheck>("cuda-unsafe-api-call");
+    CheckFactories.registerCheck<UnsafeKernelCallCheck>(
+        "cuda-unsafe-kernel-call");
   }
 };
 
