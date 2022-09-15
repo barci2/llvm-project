@@ -11,7 +11,9 @@
 
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/Decl.h"
+#include "clang/Basic/SourceManagerInternals.h"
 #include "clang/Sema/DeclSpec.h"
+#include "clang/Tooling/FixIt.h"
 
 namespace clang {
 namespace tidy {
@@ -46,6 +48,17 @@ addQualifierToVarDecl(const VarDecl &Var, const ASTContext &Context,
                       DeclSpec::TQ Qualifier,
                       QualifierTarget CT = QualifierTarget::Pointee,
                       QualifierPolicy CP = QualifierPolicy::Left);
+
+/// \brief Adds a statement to be executed right after this statement .
+/// Is designed for taking potential comments or statements in the same line
+/// into account. The statement should not be an expression that's part of
+/// another statement. The statement range should include the terminator
+/// (semicolon).
+llvm::SmallVector<FixItHint, 1>
+addSubsequentStatement(SourceRange stmtRangeWithTerminator,
+                       const Stmt &parentStmt, llvm::StringRef nextStmt,
+                       ASTContext &context);
+
 } // namespace fixit
 } // namespace utils
 } // namespace tidy

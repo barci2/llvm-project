@@ -223,6 +223,154 @@ Optional<FixItHint> addQualifierToVarDecl(const VarDecl &Var,
 
   return None;
 }
+
+static unsigned int getLineNumber(SourceLocation Loc, SourceManager& SM) {
+  FileID FID;
+  unsigned int Offset;
+  std::tie(FID, Offset) = SM.getDecomposedLoc(Loc);
+  return SM.getLineNumber(FID, Offset);
+}
+
+static std::string getIndent(SourceLocation sLoc, ASTContext& context) {
+  auto& SM = context.getSourceManager();
+
+  const auto sLocLineNo = getLineNumber(sLoc, SM);
+
+  auto indentation_template = tooling::fixit::internal::getText(
+      CharSourceRange::getCharRange(SourceRange(
+          SM.translateLineCol(SM.getFileID(sLoc), sLocLineNo, 1), sLoc)),
+      context);
+
+  std::string indentation;
+  indentation.reserve(indentation_template.size());
+  std::transform(
+      indentation_template.begin(),
+      indentation_template.end(),
+      std::back_inserter(indentation),
+      [](char c) { return isspace(c) ? c : ' '; });
+  return indentation;
+}
+
+llvm::SmallVector<FixItHint, 1> addSubsequentStatement(
+    SourceRange stmtRangeWithTerminator,
+    const Stmt& parentStmt,
+    llvm::StringRef nextStmt,
+    ASTContext& context) {
+  auto& SM = context.getSourceManager();
+  auto langOpts = context.getLangOpts();
+
+  const auto stmtEndLineNo =
+      getLineNumber(stmtRangeWithTerminator.getEnd(), SM);
+
+  // Find the first token's data for which the next token is
+  // either a line apart or is not a comment
+  SourceLocation lastTokenEndLoc =
+      stmtRangeWithTerminator.getEnd().getLocWithOffset(1);
+  auto lastTokenLine = stmtEndLineNo;
+  bool insertNewLine = true;
+  while (true) {
+    llvm::Optional<Token> tokenOption = Lexer::findNextToken(
+        lastTokenEndLoc.getLocWithOffset(-1), SM, langOpts, true);
+    if (!tokenOption) {
+      return llvm::SmallVector<FixItHint, 1>();
+    }
+    if (tokenOption->is(tok::eof)) {
+      insertNewLine = false;
+      break;
+    }
+    const auto tokenBeginLineNo = getLineNumber(tokenOption->getLocation(), SM);
+
+    if (tokenOption->isNot(tok::comment)) {
+      insertNewLine = tokenBeginLineNo != stmtEndLineNo;
+      break;
+    }
+    if (tokenBeginLineNo > lastTokenLine) {
+      break;
+    }
+
+    lastTokenEndLoc = tokenOption->getEndLoc();
+    lastTokenLine = getLineNumber(tokenOption->getEndLoc(), SM);
+  }
+
+  bool isEnclosedWithBrackets =
+      parentStmt.getStmtClass() == Stmt::CompoundStmtClass;
+
+  // Generating the FixItHint
+  // There are 5 scenarios that we have to take into account:
+  // 1. The statement is enclosed in brackets but the next statement is
+  //    in the same line - insert the new statement right after the previous one
+  // 2. The statement is not enclosed in brackets and the next statement is
+  //    in the same line - same as 1. and enclose both statements in brackets
+  //    on the same line
+  // 3. The statement is enclosed in brackets and the next statement is
+  //    on subsequent lines - skip all the comments in this line
+  // 4. The statement is not enclosed in brackets but the next statement is on
+  //    subsequent lines - same as 3. and enclose the statements with
+  //    google-style multiline brackets (opening bracket right after the parent
+  //    statement and closing bracket on a new line after the new statement).
+  // 5. The statement is not enclosed in brackets but the next statement is on
+  //    subsequent lines and the main statement is before an else token - same
+  //    as 4. but the closing bracket is put on the same line as the else
+  //    statement
+  if (!insertNewLine) {
+    if (isEnclosedWithBrackets) {
+      // Case 1.
+      return llvm::SmallVector<FixItHint, 1>{FixItHint::CreateInsertion(
+          stmtRangeWithTerminator.getEnd().getLocWithOffset(1),
+          (llvm::Twine(" ") + nextStmt.str() + ";").str())};
+    } else {
+      // Case 2.
+      return llvm::SmallVector<FixItHint, 1>{
+          FixItHint::CreateInsertion(stmtRangeWithTerminator.getBegin(), "{"),
+          FixItHint::CreateInsertion(
+              stmtRangeWithTerminator.getEnd().getLocWithOffset(1),
+              (llvm::Twine(" ") + nextStmt.str() + ";}").str())};
+    }
+  } else {
+    if (isEnclosedWithBrackets) {
+      // Case 3.
+      return llvm::SmallVector<FixItHint, 1>{FixItHint::CreateInsertion(
+          lastTokenEndLoc,
+          (llvm::Twine("\n") +
+           getIndent(stmtRangeWithTerminator.getBegin(), context) +
+           nextStmt.str() + ";")
+              .str())};
+    } else {
+      const auto previousTokenEndLoc =
+          tidy::utils::lexer::getPreviousToken(
+              stmtRangeWithTerminator.getBegin(), SM, context.getLangOpts())
+              .getEndLoc();
+      auto nextStmtIndent =
+          getIndent(stmtRangeWithTerminator.getBegin(), context);
+
+      if (getLineNumber(previousTokenEndLoc, SM) ==
+          getLineNumber(stmtRangeWithTerminator.getBegin(), SM)) {
+        nextStmtIndent += "  ";
+      }
+      auto nextToken = Lexer::findNextToken(lastTokenEndLoc, SM, langOpts);
+      if (!nextToken || nextToken->getRawIdentifier() != "else") {
+        // Case 4.
+        return llvm::SmallVector<FixItHint, 1>{
+            FixItHint::CreateInsertion(previousTokenEndLoc, " {"),
+            FixItHint::CreateInsertion(
+                lastTokenEndLoc,
+                (llvm::Twine("\n") + nextStmtIndent + nextStmt.str() + ";\n" +
+                 getIndent(parentStmt.getBeginLoc(), context) + "}")
+                    .str())};
+      } else {
+        // Case 5.
+        return llvm::SmallVector<FixItHint, 1>{
+            FixItHint::CreateInsertion(previousTokenEndLoc, " {"),
+            FixItHint::CreateInsertion(
+                lastTokenEndLoc,
+                (llvm::Twine("\n") + nextStmtIndent + nextStmt.str() + ";")
+                    .str()),
+            FixItHint::CreateInsertion(nextToken->getLocation(), "} ")};
+      }
+    }
+  }
+}
+
 } // namespace fixit
 } // namespace utils
 } // namespace tidy
